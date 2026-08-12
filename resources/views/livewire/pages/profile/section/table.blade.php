@@ -28,7 +28,7 @@
 
     @if ($profiles->isEmpty())
         <x-nawasara-ui::empty-state
-            icon="users-round"
+            icon="lucide-users-round"
             title="Belum ada warga terdaftar"
             description="Warga akan muncul di sini setelah masuk pertama kali lewat aplikasi." />
     @else
