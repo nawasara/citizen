@@ -1,0 +1,48 @@
+{
+    "name": "nawasara/citizen",
+    "description": "Citizen identity and profile for the Nawasara superapp framework — links Keycloak citizen accounts to local profiles by `sub`, stores domicile address, and keeps NIK encrypted in a separate table with its own access trail.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "nawasara",
+        "laravel",
+        "citizen",
+        "identity",
+        "keycloak",
+        "profile"
+    ],
+    "authors": [
+        {
+            "name": "Pringgo J. Saputro",
+            "email": "odyinggo@gmail.com",
+            "role": "Lead Developer"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/nawasara/citizen/issues",
+        "source": "https://github.com/nawasara/citizen"
+    },
+    "autoload": {
+        "psr-4": {
+            "Nawasara\\Citizen\\": "src/"
+        }
+    },
+    "require": {
+        "php": "^8.1",
+        "illuminate/support": "^10.0|^12.0",
+        "spatie/laravel-permission": "^6.0",
+        "spatie/laravel-activitylog": "^4.9",
+        "nawasara/ui": "*",
+        "nawasara/api": "*",
+        "livewire/livewire": "^3.0"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Nawasara\\Citizen\\CitizenServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
