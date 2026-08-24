@@ -46,6 +46,7 @@ class CitizenProvisioner
                     'keycloak_sub' => $sub,
                     'full_name' => $this->nameFrom($claims),
                     'email' => $claims['email'] ?? null,
+                    'phone' => $this->phoneFrom($claims),
                     'address_source' => CitizenProfile::SOURCE_EMPTY,
                     'last_login_at' => now(),
                 ]);
@@ -58,6 +59,12 @@ class CitizenProvisioner
             $profile->fill([
                 'full_name' => $this->nameFrom($claims) ?? $profile->full_name,
                 'email' => $claims['email'] ?? $profile->email,
+
+                // Nomor lama DIPERTAHANKAN bila klaimnya kosong. Realm yang
+                // belum memasang mapper akan mengirim klaim kosong pada
+                // setiap login, dan menimpanya dengan null akan menghapus
+                // nomor yang sudah pernah tercatat.
+                'phone' => $this->phoneFrom($claims) ?? $profile->phone,
                 'last_login_at' => now(),
             ])->save();
 
@@ -72,6 +79,31 @@ class CitizenProvisioner
      * and `given_name` usually carry the same value. Google-linked accounts
      * fill both from the Google profile.
      */
+    /**
+     * Nomor HP dari klaim, bila realm mengirimkannya.
+     *
+     * Beberapa nama diperiksa karena mapper Keycloak dapat dipasang dengan
+     * nama klaim apa pun, dan portal SSO warga menamainya berbeda dari
+     * standar OIDC (`phone_number`). Yang mana pun yang terpasang, nomornya
+     * terbaca tanpa perlu mengubah kode di sini.
+     *
+     * Null itu SAH: verifikasi WhatsApp dinonaktifkan (WAGO terkena blokir),
+     * jadi tidak semua warga punya nomor tercatat. Aplikasi menuliskannya
+     * nullable.
+     */
+    protected function phoneFrom(array $claims): ?string
+    {
+        foreach (['phone_number', 'phone', 'whatsapp', 'nomor_hp'] as $key) {
+            $value = $claims[$key] ?? null;
+
+            if (is_string($value) && trim($value) !== '') {
+                return trim($value);
+            }
+        }
+
+        return null;
+    }
+
     protected function nameFrom(array $claims): ?string
     {
         foreach (['name', 'given_name', 'preferred_username'] as $key) {

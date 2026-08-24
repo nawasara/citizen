@@ -5,9 +5,11 @@ namespace Nawasara\Citizen\Http\Api;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Nawasara\Citizen\Http\Resources\CitizenMeResource;
 use Nawasara\Citizen\Http\Resources\CitizenProfileResource;
 use Nawasara\Citizen\Models\CitizenProfile;
 use Nawasara\Citizen\Services\CitizenProvisioner;
+use Nawasara\Citizen\Services\CitizenStats;
 
 /**
  * The citizen's own profile. Behind api.citizen (Keycloak JWT).
@@ -34,6 +36,36 @@ class ProfileController
         }
 
         return response()->json(['data' => new CitizenProfileResource($profile)]);
+    }
+
+    /**
+     * GET /api/v1/citizen/me
+     *
+     * Layar Akun di aplikasi warga: profil ringkas beserta angka kontribusi.
+     *
+     * Terpisah dari `/citizen/profile` dengan sengaja. Yang itu tentang
+     * alamat dan penyuntingannya; yang ini tentang apa yang ditampilkan satu
+     * layar, dan bentuknya dipatok untuk aplikasi yang sudah terpasang
+     * (`docs/teknis/rencana/endpoint-yang-dibutuhkan.md` §2). Menggabungkan
+     * keduanya berarti setiap perubahan pada salah satu layar memaksa
+     * perubahan pada yang lain.
+     */
+    public function me(Request $request, CitizenStats $stats): JsonResponse
+    {
+        $profile = $this->resolve($request);
+
+        if ($profile === null) {
+            return response()->json([
+                'error' => ['code' => 'profile_unavailable', 'message' => 'Profil tidak dapat dimuat.'],
+            ], 404);
+        }
+
+        return response()->json([
+            'data' => new CitizenMeResource(
+                $profile,
+                $stats->for($profile->keycloak_sub),
+            ),
+        ]);
     }
 
     /** PATCH /api/v1/citizen/profile */

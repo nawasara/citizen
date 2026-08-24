@@ -15,5 +15,10 @@ use Nawasara\Citizen\Http\Api\ProfileController;
 | there is no other row to reach.
 */
 
+// Layar Akun aplikasi warga — profil + angka kontribusi dalam satu panggilan.
+// Lihat catatan pada ProfileController::me() untuk alasan ia terpisah dari
+// /profile.
+Route::get('/me', [ProfileController::class, 'me'])->name('me');
+
 Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
 Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
