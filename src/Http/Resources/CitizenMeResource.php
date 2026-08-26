@@ -26,11 +26,11 @@ use Nawasara\Citizen\Models\CitizenProfile;
  */
 class CitizenMeResource extends JsonResource
 {
-    /** @var array{reports:int, in_progress:int, supports_given:int, ratings_given:int} */
+    /** @var array{reports:int, in_progress:int, resolved:int, supports_given:int, ratings_given:int} */
     protected array $stats;
 
     /**
-     * @param  array{reports:int, in_progress:int, supports_given:int, ratings_given:int}  $stats
+     * @param  array{reports:int, in_progress:int, resolved:int, supports_given:int, ratings_given:int}  $stats
      */
     public function __construct(CitizenProfile $profile, array $stats)
     {

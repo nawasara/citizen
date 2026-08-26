@@ -27,7 +27,7 @@ class CitizenStats
     protected const TABLE_SUPPORTS = 'nawasara_aspirations_supports';
 
     /**
-     * @return array{reports:int, in_progress:int, supports_given:int, ratings_given:int}
+     * @return array{reports:int, in_progress:int, resolved:int, supports_given:int, ratings_given:int}
      */
     public function for(string $keycloakSub): array
     {
@@ -50,6 +50,13 @@ class CitizenStats
                 'awaiting_verification',
             ])->count(),
 
+            // Pasangan `in_progress`, dan alasannya sama: warga bertanya
+            // "sudah selesai atau belum". Menyebut yang sedang berjalan saja
+            // membuat separuh jawabannya hilang — dan `reports` dikurangi
+            // `in_progress` BUKAN penggantinya, karena laporan yang ditolak
+            // tidak sedang diproses maupun selesai.
+            'resolved' => (clone $laporan)->where('status', 'resolved')->count(),
+
             'supports_given' => Schema::hasTable(self::TABLE_SUPPORTS)
                 ? DB::table(self::TABLE_SUPPORTS)->where('keycloak_sub', $keycloakSub)->count()
                 : 0,
@@ -61,12 +68,13 @@ class CitizenStats
         ];
     }
 
-    /** @return array{reports:int, in_progress:int, supports_given:int, ratings_given:int} */
+    /** @return array{reports:int, in_progress:int, resolved:int, supports_given:int, ratings_given:int} */
     protected function kosong(): array
     {
         return [
             'reports' => 0,
             'in_progress' => 0,
+            'resolved' => 0,
             'supports_given' => 0,
             'ratings_given' => 0,
         ];
