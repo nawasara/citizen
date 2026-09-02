@@ -30,6 +30,10 @@ class CitizenProfile extends Model
         'address',
         'village',
         'district',
+        // Kode wilayah — yang menjadi kebenaran; kolom teks di atas untuk
+        // ditampilkan. Lihat migrasi add_region_codes_to_citizen_profiles.
+        'district_code',
+        'village_code',
         'village_id',
         'address_source',
         'last_login_at',

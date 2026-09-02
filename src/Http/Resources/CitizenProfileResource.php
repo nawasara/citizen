@@ -33,6 +33,13 @@ class CitizenProfileResource extends JsonResource
             'village' => $this->village,
             'district' => $this->district,
 
+            // Nullable dengan sengaja: profil lama tidak punya kode, dan
+            // menebaknya dari ejaan lama adalah risiko yang justru hendak
+            // dihindari — tebakan yang keliru menyalurkan laporan ke kecamatan
+            // yang salah. Aplikasi menuliskannya nullable.
+            'district_code' => $this->district_code,
+            'village_code' => $this->village_code,
+
             // Whether the address was typed by the citizen or derived. The app
             // uses this to decide whether prompting for it is worthwhile.
             'address_source' => $this->address_source,

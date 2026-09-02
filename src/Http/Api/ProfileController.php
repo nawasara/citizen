@@ -4,7 +4,7 @@ namespace Nawasara\Citizen\Http\Api;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 use Nawasara\Citizen\Http\Resources\CitizenMeResource;
 use Nawasara\Citizen\Http\Resources\CitizenProfileResource;
 use Nawasara\Citizen\Models\CitizenProfile;
@@ -86,7 +86,21 @@ class ProfileController
             'address' => ['sometimes', 'nullable', 'string', 'max:1000'],
             'village' => ['sometimes', 'nullable', 'string', 'max:255'],
             'district' => ['sometimes', 'nullable', 'string', 'max:255'],
+
+            // Kode wilayah — INI yang menjadi kebenaran; teks di atas hanya
+            // untuk ditampilkan. Selama alamat berupa teks bebas, "Ngrayun"
+            // dan "Ngerayun" menjadi dua kecamatan berbeda, dan laporan
+            // tersalur ke OPD yang keliru tanpa ada yang menyadarinya.
+            //
+            // Boleh null: ribuan profil lama tidak punya kode, dan menebaknya
+            // dari ejaan lama justru risiko yang hendak dihindari.
+            'district_code' => ['sometimes', 'nullable', 'string', 'size:7'],
+            'village_code' => ['sometimes', 'nullable', 'string', 'size:10'],
         ]);
+
+        if ($galat = $this->validateRegionCodes($data)) {
+            return response()->json(['error' => $galat], 422);
+        }
 
         if ($data === []) {
             return response()->json(['data' => new CitizenProfileResource($profile)]);
@@ -121,6 +135,56 @@ class ProfileController
     }
 
     /** "Kec. Jenangan" and "JENANGAN" both become "jenangan". */
+    /**
+     * Kode kecamatan harus nyata, dan kode desa harus MILIK kecamatan itu.
+     *
+     * Kode desa BPS selalu berawalan kode kecamatannya (`3502110` →
+     * `3502110001`), jadi pasangan yang tidak cocok dapat ditolak tanpa tabel
+     * desa sama sekali — berguna selama data desa belum ada.
+     *
+     * Ditolak dengan 422, bukan diperbaiki diam-diam. Alamat yang ditebak
+     * server adalah persis cara laporan tersalur ke kecamatan yang salah.
+     *
+     * @param  array<string,mixed>  $data
+     * @return array<string,string>|null
+     */
+    protected function validateRegionCodes(array $data): ?array
+    {
+        $district = $data['district_code'] ?? null;
+        $village = $data['village_code'] ?? null;
+
+        if ($district !== null && $district !== '') {
+            $ada = DB::table('nawasara_aspirations_districts')
+                ->where('code', $district)
+                ->exists();
+
+            if (! $ada) {
+                return [
+                    'code' => 'unknown_district',
+                    'message' => 'Kode kecamatan tidak dikenali.',
+                ];
+            }
+        }
+
+        if ($village !== null && $village !== '') {
+            if ($district === null || $district === '') {
+                return [
+                    'code' => 'district_required',
+                    'message' => 'Kode desa harus disertai kode kecamatannya.',
+                ];
+            }
+
+            if (! str_starts_with($village, $district)) {
+                return [
+                    'code' => 'village_district_mismatch',
+                    'message' => 'Kode desa tidak berada di kecamatan yang dipilih.',
+                ];
+            }
+        }
+
+        return null;
+    }
+
     protected function normalisePlace(string $value): string
     {
         $value = preg_replace('/^(kec\.?|kecamatan|desa|ds\.?|kel\.?|kelurahan)\s+/iu', '', trim($value));
