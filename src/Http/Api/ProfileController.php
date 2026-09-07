@@ -94,7 +94,7 @@ class ProfileController
             //
             // Boleh null: ribuan profil lama tidak punya kode, dan menebaknya
             // dari ejaan lama justru risiko yang hendak dihindari.
-            'district_code' => ['sometimes', 'nullable', 'string', 'size:7'],
+            'district_code' => ['sometimes', 'nullable', 'string', 'size:6'],
             'village_code' => ['sometimes', 'nullable', 'string', 'size:10'],
         ]);
 
@@ -138,9 +138,9 @@ class ProfileController
     /**
      * Kode kecamatan harus nyata, dan kode desa harus MILIK kecamatan itu.
      *
-     * Kode desa BPS selalu berawalan kode kecamatannya (`3502110` →
-     * `3502110001`), jadi pasangan yang tidak cocok dapat ditolak tanpa tabel
-     * desa sama sekali — berguna selama data desa belum ada.
+     * Kode desa Kemendagri selalu berawalan kode kecamatannya (`350217` →
+     * `3502171001`), jadi pasangan yang tidak cocok dapat ditolak tanpa join
+     * ke tabel desa sama sekali.
      *
      * Ditolak dengan 422, bukan diperbaiki diam-diam. Alamat yang ditebak
      * server adalah persis cara laporan tersalur ke kecamatan yang salah.

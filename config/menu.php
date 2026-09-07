@@ -28,6 +28,15 @@ return [
         'url' => '',
         'permission' => 'citizen.profile.view',
         'submenu' => [
+            // Section heading of its own — WITHOUT it this entry is appended
+            // after the last section contributed by nawasara-aspirations, so
+            // "Data Warga" renders underneath that package's "Pengaturan"
+            // heading and reads as a setting rather than as citizen data.
+            [
+                'section' => 'Warga',
+                'icon' => 'lucide-users-round',
+                'permission' => 'citizen.profile.view',
+            ],
             [
                 'label' => 'Data Warga',
                 'icon' => 'lucide-users-round',

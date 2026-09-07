@@ -26,9 +26,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('nawasara_citizen_profiles', function (Blueprint $table) {
-            // Kode BPS: kecamatan 7 digit (3502110), desa 10 digit
-            // (3502110001). Disimpan sebagai string, bukan angka — angka
-            // membuang nol di depan, dan sebagian kode wilayah memilikinya.
+            // Kode KEMENDAGRI: kecamatan 6 digit (350217), desa 10 digit
+            // (3502172001) — BUKAN BPS, yang memakai 7 dan 10 dengan urutan
+            // kecamatan yang berbeda. Disimpan sebagai string, bukan angka:
+            // sebagian kode wilayah berawalan nol, dan sebagai angka nol itu
+            // hilang lalu kodenya tidak cocok dengan apa pun.
             $table->string('district_code', 10)->nullable()->after('district')->index();
             $table->string('village_code', 13)->nullable()->after('district_code');
         });
