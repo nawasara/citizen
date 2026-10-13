@@ -2,7 +2,9 @@
 
 namespace Nawasara\Citizen;
 
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
+use Nawasara\Citizen\Models\CitizenDevice;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
@@ -19,6 +21,22 @@ class CitizenServiceProvider extends ServiceProvider
 
         $this->registerLivewire();
         $this->registerCitizenApiRoutes();
+        $this->forgetRejectedPushTokens();
+    }
+
+    /**
+     * Delete a device row once FCM says its token is dead.
+     *
+     * Listened to by NAME rather than by importing the event class, so this
+     * package needs no dependency on nawasara/notification: without it the
+     * event is simply never dispatched. Without this listener, every later
+     * notification to that citizen would try the dead token again.
+     */
+    protected function forgetRejectedPushTokens(): void
+    {
+        Event::listen('Nawasara\\Notification\\Events\\PushTokenRejected', function ($event) {
+            CitizenDevice::where('token', $event->token)->delete();
+        });
     }
 
     public function register(): void

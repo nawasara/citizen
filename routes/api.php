@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Nawasara\Citizen\Http\Api\DeviceController;
 use Nawasara\Citizen\Http\Api\ProfileController;
 
 /*
@@ -22,3 +23,8 @@ Route::get('/me', [ProfileController::class, 'me'])->name('me');
 
 Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
 Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+
+// Perangkat penerima push notification. Didaftarkan setelah masuk, dihapus
+// saat keluar akun; lihat DeviceController.
+Route::post('/devices', [DeviceController::class, 'store'])->name('devices.store');
+Route::delete('/devices', [DeviceController::class, 'destroy'])->name('devices.destroy');

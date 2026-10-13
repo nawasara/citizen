@@ -39,10 +39,29 @@ Add to `resources/css/app.css`:
 All of them sit behind `api.citizen`, a Keycloak JWT from the citizen realm, not an `nws_` token. Identity always comes from the `sub` claim on the verified token, never from a parameter. No route accepts an id, so there is nothing for someone else to enumerate.
 
 ```
-GET   /api/v1/citizen/me         Account screen plus contribution stats
-GET   /api/v1/citizen/profile    profile plus address
-PATCH /api/v1/citizen/profile    update home address
+GET    /api/v1/citizen/me         Account screen plus contribution stats
+GET    /api/v1/citizen/profile    profile plus address
+PATCH  /api/v1/citizen/profile    update home address
+POST   /api/v1/citizen/devices    register a push token
+DELETE /api/v1/citizen/devices    forget a push token (on sign-out)
 ```
+
+### Push devices
+
+`nawasara_citizen_devices` holds the FCM tokens of each citizen, keyed by
+`keycloak_sub`. The app contract is in `docs/api-superapps/notifikasi.md` of
+the app repo.
+
+- **The token is unique across citizens.** When someone else signs in on the
+  same phone, the row moves to them. Keeping it under the old account would
+  send the first person's report updates to whoever holds the phone now.
+- **At most 10 devices per citizen**, oldest dropped first, so tokens from
+  reinstalls over months do not pile up.
+- **Dead tokens are deleted** when FCM rejects them: the provider listens for
+  `Nawasara\Notification\Events\PushTokenRejected` by name, so this package
+  does not depend on nawasara/notification.
+- **DELETE always answers 204**, matched or not. Sign-out must not fail because
+  a token was never registered.
 
 ### `GET /citizen/me`
 
