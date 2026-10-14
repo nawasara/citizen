@@ -44,7 +44,27 @@ GET    /api/v1/citizen/profile    profile plus address
 PATCH  /api/v1/citizen/profile    update home address
 POST   /api/v1/citizen/devices    register a push token
 DELETE /api/v1/citizen/devices    forget a push token (on sign-out)
+GET    /api/v1/citizen/notification-preferences   notification switches
+PATCH  /api/v1/citizen/notification-preferences   change some of them
 ```
+
+### Notification preferences
+
+Stored as JSON on the profile (`notification_preferences`), topics defined in
+`Nawasara\Citizen\Support\NotificationPreferences::TOPICS`. Senders ask
+`NotificationPreferences::allows($sub, $topic)` before sending; aspirations'
+`ReportNotifier` does so for push and email alike.
+
+- **Only topics that have a sender are listed.** The app mockup shows switches
+  for news and job alerts; none of those are sent, and a switch that changes
+  nothing teaches people the settings screen is meaningless.
+- **The app renders the list from the response**, labels included, so a new
+  topic appears without an app release. `locked` topics (meant for disaster
+  alerts) are always on and cannot be patched.
+- **Only switches the citizen touched are stored.** Changing a default later
+  then applies to everyone who never changed it.
+- **Unknown topics are allowed by `allows()`.** A new sender that forgets to
+  register its topic should still reach people, not go silent.
 
 ### Push devices
 

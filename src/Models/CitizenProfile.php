@@ -41,6 +41,7 @@ class CitizenProfile extends Model
 
     protected $casts = [
         'last_login_at' => 'datetime',
+        'notification_preferences' => 'array',
     ];
 
     /**

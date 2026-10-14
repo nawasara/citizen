@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Nawasara\Citizen\Http\Api\DeviceController;
+use Nawasara\Citizen\Http\Api\NotificationPreferenceController;
 use Nawasara\Citizen\Http\Api\ProfileController;
 
 /*
@@ -28,3 +29,7 @@ Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.up
 // saat keluar akun; lihat DeviceController.
 Route::post('/devices', [DeviceController::class, 'store'])->name('devices.store');
 Route::delete('/devices', [DeviceController::class, 'destroy'])->name('devices.destroy');
+
+// Sakelar notifikasi per topik; berlaku untuk push dan email.
+Route::get('/notification-preferences', [NotificationPreferenceController::class, 'show'])->name('notification-preferences.show');
+Route::patch('/notification-preferences', [NotificationPreferenceController::class, 'update'])->name('notification-preferences.update');
