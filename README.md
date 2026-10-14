@@ -50,10 +50,12 @@ PATCH  /api/v1/citizen/notification-preferences   change some of them
 
 ### Notification preferences
 
-Stored as JSON on the profile (`notification_preferences`), topics defined in
-`Nawasara\Citizen\Support\NotificationPreferences::TOPICS`. Senders ask
-`NotificationPreferences::allows($sub, $topic)` before sending; aspirations'
-`ReportNotifier` does so for push and email alike.
+Stored as JSON on the profile (`notification_preferences`). Switches are per
+channel and per topic, keyed `<channel>.<topic>` (`email.report_progress`), from
+`NotificationPreferences::CHANNELS` × `TOPICS`. Each channel is one group on the
+app screen, so a citizen can turn email off without losing push. Senders ask
+`NotificationPreferences::allows($sub, $topic, $channel)` before each channel;
+aspirations' `ReportNotifier` does so separately for push and email.
 
 - **Only topics that have a sender are listed.** The app mockup shows switches
   for news and job alerts; none of those are sent, and a switch that changes

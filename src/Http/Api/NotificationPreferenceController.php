@@ -12,14 +12,12 @@ use Nawasara\Citizen\Support\NotificationPreferences;
  * Pengaturan notifikasi warga yang sedang masuk.
  *
  *   GET   /api/v1/citizen/notification-preferences
- *   PATCH /api/v1/citizen/notification-preferences   { "report_progress": false }
+ *   PATCH /api/v1/citizen/notification-preferences   { "email.report_progress": false }
  *
- * Keduanya menjawab bentuk yang sama: daftar topik lengkap dengan label dan
+ * Keduanya menjawab bentuk yang sama: daftar sakelar lengkap dengan label dan
  * nilai yang berlaku, sehingga aplikasi cukup menggambar ulang dari jawaban.
- *
- * Pilihan ini berlaku untuk SEMUA kanal (push dan email). Warga yang mematikan
- * "Perkembangan laporan" tidak mengharapkan kabar yang sama tetap datang
- * lewat surel.
+ * Sakelarnya per kanal (push, email) dan per topik; lihat
+ * NotificationPreferences.
  */
 class NotificationPreferenceController
 {
@@ -50,14 +48,16 @@ class NotificationPreferenceController
 
         // Kunci yang tidak dikenal DITOLAK, bukan diabaikan. Aplikasi yang
         // salah eja kunci akan mengira pilihannya tersimpan padahal tidak.
-        foreach ($input as $key => $value) {
-            $topic = NotificationPreferences::TOPICS[$key] ?? null;
+        $switches = NotificationPreferences::switches();
 
-            if ($topic === null) {
-                return $this->invalid('unknown_topic', "Topik '{$key}' tidak dikenal.");
+        foreach ($input as $key => $value) {
+            $switch = $switches[$key] ?? null;
+
+            if ($switch === null) {
+                return $this->invalid('unknown_topic', "Sakelar '{$key}' tidak dikenal.");
             }
-            if ($topic['locked']) {
-                return $this->invalid('topic_locked', "{$topic['label']} tidak dapat dimatikan.");
+            if ($switch['locked']) {
+                return $this->invalid('topic_locked', "{$switch['label']} tidak dapat dimatikan.");
             }
             if (! is_bool($value)) {
                 return $this->invalid('invalid_value', "Nilai untuk '{$key}' harus true atau false.");

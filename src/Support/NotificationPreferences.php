@@ -5,8 +5,13 @@ namespace Nawasara\Citizen\Support;
 use Nawasara\Citizen\Models\CitizenProfile;
 
 /**
- * Topik notifikasi yang dapat diatur warga, dan apakah sebuah topik boleh
- * dikirim ke warga tertentu.
+ * Sakelar notifikasi warga, per TOPIK dan per KANAL, dan apakah sebuah kabar
+ * boleh dikirim ke warga tertentu.
+ *
+ * Kuncinya `<kanal>.<topik>`, misalnya `email.report_progress`. Tiap kanal
+ * menjadi satu kelompok di layar aplikasi, berisi topik yang sama. Warga yang
+ * terganggu email dapat mematikannya tanpa ikut kehilangan push, dan
+ * sebaliknya: satu sakelar untuk dua kanal memaksa pilihan semua-atau-tidak.
  *
  * ⚠️ Hanya topik yang BENAR-BENAR ada pengirimnya yang dicantumkan. Mockup
  * aplikasi memuat sakelar "Diteruskan ke OPD", "Berita penting", dan
@@ -14,39 +19,70 @@ use Nawasara\Citizen\Models\CitizenProfile;
  * mengubah apa pun mengajari warga bahwa pengaturan ini tidak berarti.
  *
  * Daftar ini dikirim ke aplikasi apa adanya (label, keterangan, kelompok),
- * sehingga topik baru muncul di layar tanpa menunggu rilis aplikasi.
+ * sehingga topik atau kanal baru muncul di layar tanpa menunggu rilis aplikasi.
  *
- * Topik `locked` selalu menyala dan tidak dapat dimatikan. Disiapkan untuk
- * peringatan bencana: keselamatan tidak boleh bergantung pada sakelar yang
- * pernah dimatikan warga karena merasa terganggu.
+ * Topik `locked` selalu menyala di semua kanal dan tidak dapat dimatikan.
+ * Disiapkan untuk peringatan bencana: keselamatan tidak boleh bergantung pada
+ * sakelar yang pernah dimatikan warga karena merasa terganggu.
  */
 final class NotificationPreferences
 {
+    public const CHANNEL_PUSH = 'push';
+
+    public const CHANNEL_EMAIL = 'email';
+
     /** Sedang ditangani, dibuka kembali. */
     public const REPORT_PROGRESS = 'report_progress';
 
     /** Selesai, ditolak. */
     public const REPORT_RESULT = 'report_result';
 
+    /** Urutan di sini menjadi urutan kelompok di layar. */
+    public const CHANNELS = [
+        self::CHANNEL_PUSH => 'Notifikasi Ponsel',
+        self::CHANNEL_EMAIL => 'Email',
+    ];
+
     /**
-     * @var array<string, array{group:string, label:string, description:string, default:bool, locked:bool}>
+     * @var array<string, array{label:string, description:string, default:bool, locked:bool}>
      */
     public const TOPICS = [
         self::REPORT_PROGRESS => [
-            'group' => 'Laporan Saya',
             'label' => 'Perkembangan laporan',
             'description' => 'Saat petugas mulai menangani laporan, atau laporan dibuka kembali',
             'default' => true,
             'locked' => false,
         ],
         self::REPORT_RESULT => [
-            'group' => 'Laporan Saya',
             'label' => 'Hasil laporan',
             'description' => 'Saat laporan dinyatakan selesai atau tidak dapat diproses',
             'default' => true,
             'locked' => false,
         ],
     ];
+
+    public static function key(string $channel, string $topic): string
+    {
+        return $channel.'.'.$topic;
+    }
+
+    /**
+     * Semua sakelar, berurutan: kanal demi kanal, topik demi topik.
+     *
+     * @return array<string, array{channel:string, topic:string, label:string, description:string, default:bool, locked:bool}>
+     */
+    public static function switches(): array
+    {
+        $out = [];
+
+        foreach (self::CHANNELS as $channel => $group) {
+            foreach (self::TOPICS as $topic => $def) {
+                $out[self::key($channel, $topic)] = ['channel' => $channel, 'topic' => $topic] + $def;
+            }
+        }
+
+        return $out;
+    }
 
     /**
      * Nilai yang berlaku: pilihan tersimpan di atas bawaan.
@@ -61,17 +97,17 @@ final class NotificationPreferences
     {
         $resolved = [];
 
-        foreach (self::TOPICS as $key => $topic) {
-            $resolved[$key] = $topic['locked']
+        foreach (self::switches() as $key => $switch) {
+            $resolved[$key] = $switch['locked']
                 ? true
-                : (is_bool($stored[$key] ?? null) ? $stored[$key] : $topic['default']);
+                : (is_bool($stored[$key] ?? null) ? $stored[$key] : $switch['default']);
         }
 
         return $resolved;
     }
 
     /**
-     * Bentuk untuk aplikasi, berurutan sesuai TOPICS.
+     * Bentuk untuk aplikasi.
      *
      * @param  array<string,mixed>|null  $stored
      * @return array<int, array{key:string, group:string, label:string, description:string, enabled:bool, locked:bool}>
@@ -81,14 +117,14 @@ final class NotificationPreferences
         $resolved = self::resolve($stored);
         $out = [];
 
-        foreach (self::TOPICS as $key => $topic) {
+        foreach (self::switches() as $key => $switch) {
             $out[] = [
                 'key' => $key,
-                'group' => $topic['group'],
-                'label' => $topic['label'],
-                'description' => $topic['description'],
+                'group' => self::CHANNELS[$switch['channel']],
+                'label' => $switch['label'],
+                'description' => $switch['description'],
                 'enabled' => $resolved[$key],
-                'locked' => $topic['locked'],
+                'locked' => $switch['locked'],
             ];
         }
 
@@ -98,8 +134,10 @@ final class NotificationPreferences
     /**
      * Gabungkan perubahan dari aplikasi ke pilihan tersimpan.
      *
-     * Hanya kunci yang dikirim yang berubah; sakelar lain tetap. Topik
-     * terkunci tidak pernah disimpan.
+     * Hanya kunci yang dikirim yang berubah; sakelar lain tetap. Yang belum
+     * pernah disentuh tidak disimpan, sehingga mengubah bawaan kelak berlaku
+     * bagi semua warga yang belum menyentuhnya. Topik terkunci tidak pernah
+     * disimpan.
      *
      * @param  array<string,mixed>|null  $stored
      * @param  array<string,bool>  $changes  sudah divalidasi pemanggil
@@ -109,8 +147,8 @@ final class NotificationPreferences
     {
         $merged = [];
 
-        foreach (self::TOPICS as $key => $topic) {
-            if ($topic['locked']) {
+        foreach (self::switches() as $key => $switch) {
+            if ($switch['locked']) {
                 continue;
             }
             if (array_key_exists($key, $changes)) {
@@ -124,20 +162,22 @@ final class NotificationPreferences
     }
 
     /**
-     * Boleh mengirim topik ini ke warga ini?
+     * Boleh mengirim topik ini lewat kanal ini ke warga ini?
      *
-     * Warga tanpa profil memakai bawaan. Topik yang tidak dikenal DIIZINKAN:
-     * pengirim baru yang lupa mendaftarkan topiknya lebih baik tetap sampai
-     * daripada diam-diam tidak terkirim ke siapa pun.
+     * Warga tanpa profil memakai bawaan. Topik atau kanal yang tidak dikenal
+     * DIIZINKAN: pengirim baru yang lupa mendaftarkannya lebih baik tetap
+     * sampai daripada diam-diam tidak terkirim ke siapa pun.
      */
-    public static function allows(?string $keycloakSub, string $topic): bool
+    public static function allows(?string $keycloakSub, string $topic, string $channel): bool
     {
-        if (! array_key_exists($topic, self::TOPICS)) {
+        $switch = self::switches()[self::key($channel, $topic)] ?? null;
+
+        if ($switch === null) {
             return true;
         }
 
         if ($keycloakSub === null || $keycloakSub === '') {
-            return self::TOPICS[$topic]['default'];
+            return $switch['locked'] || $switch['default'];
         }
 
         $stored = CitizenProfile::forSub($keycloakSub)->value('notification_preferences');
@@ -146,6 +186,6 @@ final class NotificationPreferences
             $stored = json_decode($stored, true);
         }
 
-        return self::resolve(is_array($stored) ? $stored : null)[$topic];
+        return self::resolve(is_array($stored) ? $stored : null)[self::key($channel, $topic)];
     }
 }
