@@ -22,6 +22,32 @@ class CitizenServiceProvider extends ServiceProvider
         $this->registerLivewire();
         $this->registerCitizenApiRoutes();
         $this->forgetRejectedPushTokens();
+        $this->registerSchedule();
+    }
+
+    /**
+     * Prune the notification inbox past its retention window, nightly.
+     *
+     * $schedule->call(), not ->command(): package commands do not reliably
+     * reach the Artisan kernel (see AGENTS.md §7). A plain timestamped delete
+     * is enough here: the table holds a few rows per citizen per month.
+     */
+    protected function registerSchedule(): void
+    {
+        $this->app->booted(function () {
+            if (! $this->app->runningInConsole()) {
+                return;
+            }
+
+            $this->app->make(\Illuminate\Console\Scheduling\Schedule::class)
+                ->call(fn () => \Nawasara\Citizen\Models\CitizenNotification::query()
+                    ->where('created_at', '<', now()->subDays(\Nawasara\Citizen\Models\CitizenNotification::retentionDays()))
+                    ->delete())
+                ->name('nawasara-citizen:prune-inbox')
+                ->dailyAt('03:10')
+                ->timezone('Asia/Jakarta')
+                ->withoutOverlapping(30);
+        });
     }
 
     /**

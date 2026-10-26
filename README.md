@@ -36,7 +36,7 @@ Add to `resources/css/app.css`:
 
 ## Citizen endpoints
 
-All of them sit behind `api.citizen`, a Keycloak JWT from the citizen realm, not an `nws_` token. Identity always comes from the `sub` claim on the verified token, never from a parameter. No route accepts an id, so there is nothing for someone else to enumerate.
+All of them sit behind `api.citizen`, a Keycloak JWT from the citizen realm, not an `nws_` token. Identity always comes from the `sub` claim on the verified token, never from a parameter. The only id taken from a request is a notification UUID, looked up inside the caller's own inbox, so there is still nothing of someone else's to reach.
 
 ```
 GET    /api/v1/citizen/me         Account screen plus contribution stats
@@ -46,6 +46,9 @@ POST   /api/v1/citizen/devices    register a push token
 DELETE /api/v1/citizen/devices    forget a push token (on sign-out)
 GET    /api/v1/citizen/notification-preferences   notification switches
 PATCH  /api/v1/citizen/notification-preferences   change some of them
+GET    /api/v1/citizen/notifications              inbox behind the bell
+PATCH  /api/v1/citizen/notifications/{id}/read    mark one read
+PATCH  /api/v1/citizen/notifications/read-all     mark all read
 ```
 
 ### Notification preferences
@@ -67,6 +70,25 @@ aspirations' `ReportNotifier` does so separately for push and email.
   then applies to everyone who never changed it.
 - **Unknown topics are allowed by `allows()`.** A new sender that forgets to
   register its topic should still reach people, not go silent.
+
+### Notification inbox
+
+`nawasara_citizen_notifications`, one row per event per citizen, written by
+senders through `CitizenNotification::record()` (aspirations' `ReportNotifier`
+for every report status it announces). Contract for the app:
+`docs/api-superapps/notifikasi.md` §3b in the Nawasara repo.
+
+- **Not read from `nawasara_notification_logs`.** That log has one row per
+  channel per address, no `keycloak_sub`, and no row at all for a citizen who
+  turned push and email off; those are the people an inbox is for. Its bodies
+  are also stripped after 30 days.
+- **Written whatever the channel switches say.** The switches decide what may
+  interrupt the citizen, not what they may read later.
+- **Kept `inbox.retention_days` (30) and the app is told the number**
+  (`meta.retention_days`), pruned nightly at 03:10 WIB. Older rows are hidden
+  even before the prune runs, so the app's "kept for 30 days" text is never
+  wrong.
+- **UUID id** because the app sends it back in a URL (AGENTS.md §10a).
 
 ### Push devices
 

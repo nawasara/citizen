@@ -23,4 +23,15 @@ return [
         // so a validation change does not require touching the model.
         'length' => 16,
     ],
+
+    // -------------------------------------------------------------------------
+    // Notification inbox
+    // -------------------------------------------------------------------------
+    // What the app shows behind the bell. Kept for a fixed number of days and
+    // the app TELLS the citizen that number, so someone looking for last
+    // month's notice knows it is gone rather than failed to load. Raising it
+    // only needs the app's text to change with it.
+    'inbox' => [
+        'retention_days' => (int) env('CITIZEN_INBOX_RETENTION_DAYS', 30),
+    ],
 ];
